@@ -205,6 +205,33 @@ db_fetch(DBHANDLE h, const char *key)
     return(ptr);
 }
 
+static int
+_db_find_and_lock(DB *db, const char * key, int writelock)
+{
+    off_t offset, nextoffset;
+
+    db->chainoff = (_db_hash(db, key) * PTR_SZ) + db->hashoff;
+    db->ptroff = db->chainoff;
+
+    if(writelock) {
+        if(writew_lock(db->idxfd, db->chainoff, SEEK_SET, 1) < 0)
+            printf("_db_find_and_lock: writew_lock error");
+    } else {
+        if(readw_lock(db->idxfd, db->chainoff, SEEK_SET, 1) < 0)\
+            printf("_db_find_and_lock: readw_lock error");
+    }
+    offset = _db_readptr(db, db->ptroff);
+    while(offset != 0) {
+        nextoffset = _db_readidx(db, offset);
+        if(strcmp(db->idxbuf , key) == 0)
+            break;
+        db->ptroff = offset;
+        offset = nextoffset;
+    }
+
+    return (offset == 0) ? -1 : 0;
+}
+
 int main() {
 
     return 0;
