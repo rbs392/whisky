@@ -174,13 +174,13 @@ _db_free(DB *db)
         close(db->datfd);
 
     if(db->idxbuf != NULL)
-        free(db->idxbuf)
+        free(db->idxbuf);
 
     if(db->datbuf != NULL)
-        free(db->datbuf)
+        free(db->datbuf);
     
     if(db->name != NULL)
-        free(db->name)
+        free(db->name);
     
     free(db);
 }
