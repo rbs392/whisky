@@ -232,6 +232,18 @@ _db_find_and_lock(DB *db, const char * key, int writelock)
     return (offset == 0) ? -1 : 0;
 }
 
+static DBHASH
+_db_hash(DB *db, const char * key)
+{
+    DBHASH  hval = 0;
+    char    c;
+    int     i;
+
+    for(i=1; (c = *key++) !=0; i++)
+        hval += c * i;
+    return(hval % db->nhash);
+}
+
 int main() {
 
     return 0;
