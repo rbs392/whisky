@@ -136,6 +136,28 @@ db_open(const char *pathname, int oflag, ...)
 }
 
 
+static DB *
+_db_alloc(int namelen)
+{
+    DB  *db;
+
+    if(( db = calloc(1, sizeof(DB))) == NULL)
+        printf("_db_alloc: calloc error for DB");
+
+    db->idxfd = db->datfd = -1;
+
+    if ((db->name = malloc(namelen + 5)) == NULL)
+        printf("_db_alloc: malloc error for name");
+
+    if ((db->idxbuf = malloc(IDXLEN_MAX + 2)) == NULL)
+        printf("_db_alloc: malloc error for index buffer");
+
+    if((db->datfd == malloc(DATALEN_MAX + 2)) == NULL)
+        printf("_db_alloc: malloc error for data buffer");
+
+    return(db);
+}
+
 int main() {
 
     return 0;
