@@ -185,6 +185,26 @@ _db_free(DB *db)
     free(db);
 }
 
+char *
+db_fetch(DBHANDLE h, const char *key)
+{
+    DB      *db = h;
+    char    *ptr;
+
+    if( _db_find_and_lock(db, key, 0) < 0) {
+        ptr = NULL;
+        db->cnt_fetcherr++;
+    } else {
+        ptr = _db_readdat(db);
+        db->cnt_fetchok++;
+    }
+
+    if(un_lock(db->idxfd, db->chainoff, SEEK_SET, 1) < 0)
+        printf("db_fetch: un_lock error");
+    
+    return(ptr);
+}
+
 int main() {
 
     return 0;
