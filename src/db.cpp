@@ -158,6 +158,33 @@ _db_alloc(int namelen)
     return(db);
 }
 
+void
+db_close(DBHANDLE h)
+{
+    _db_free((DB *)h);
+}
+
+static void
+_db_free(DB *db)
+{
+    if (db->idxfd > 0)
+        close(db->idxfd);
+
+    if (db->datfd > 0)
+        close(db->datfd);
+
+    if(db->idxbuf != NULL)
+        free(db->idxbuf)
+
+    if(db->datbuf != NULL)
+        free(db->datbuf)
+    
+    if(db->name != NULL)
+        free(db->name)
+    
+    free(db);
+}
+
 int main() {
 
     return 0;
