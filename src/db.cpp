@@ -487,6 +487,39 @@ db_rewind(DBHANDLE h)
         printf("db_rewind: lseek error");
 }
 
+
+char *
+db_nextrec(DBHANDLE h, char *key)
+{
+    DB  *db = h;
+    char c;
+    char *ptr;
+
+    if(readw_lock(db->idxfd, FREE_OFF, SEEK_SET, 1) < 0)
+        printf("db_nextrec: readw_lock error");
+
+    do {
+        if(_db_readidx(db, 0) < 0) {
+            ptr = NULL;
+            goto doreturn;
+        }
+
+        ptr = db->idxbuf;
+        while((c = *ptr++) != 0 && c == SPACE);
+    } while(c == 0);
+
+    if(key != NULL)
+        strcpy(key, db->idxbuf);
+    
+    ptr = _db_readdat(db);
+    db->cnt_nextrec++;
+
+    doreturn:
+        if(un_lock(db->idxfd, FREE_OFF, SEEK_SET, 1) < 0)
+            printf("db_nextrec: un_lock error");
+        return(ptr);
+}
+
 int main() {
 
     return 0;
