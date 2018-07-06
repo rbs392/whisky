@@ -264,6 +264,67 @@ db_delete(DBHANDLE h, const char * key)
     return(rc);
 }
 
+static void
+_db_dodelete(DB *db)
+{
+    int     i;
+    char    *ptr;
+    off_t   freeptr, saveptr;
+
+    for (ptr = db->datbuf, i=0; i < (db->datlen -1); i++)
+        *ptr++ = SPACE;
+    *ptr = 0;
+    ptr = db->idxbuf;
+
+    while(*ptr)
+        *ptr++ = SPACE;
+
+    if(writew_lock(db->idxfd, FREE_OFF, SEEK_SET, 1) < 0)
+        printf("_db_dodelete: writew_lock error");
+
+    _db_writedat(db, db->datbuf, db->datoff, SEEK_SET);
+
+    freeptr = _db_readptr(db, FREE_OFF);
+
+    saveptr = db->ptrval;
+
+    _db_writeidx(db, db->idxbuf, db->idxoff, SEEK_SET, freeptr);
+
+    _db_writeptr(db, FREE_OFF, db->idxoff);
+
+    _db_writeptr(db, db->ptroff, saveptr);
+
+    if(un_lock(db->idxfd, FREE_OFF, SEEK_SET, 1) <  0)
+        printf("_db_dodelete: un_lock error");
+}
+
+static void
+_db_writedat(DB *db, const char *data, off_t offset, int whence)
+{
+    struct iovec iov[2];
+    static char newline = NEWLINE;
+
+
+    if (whence == SEEK_END)
+        if(writew_lock(db->datfd, 0, SEEK_SET, 0) < 0)
+            printf("_db_writedat: writew_lock error");
+        if ((db->datoff = lseek(db->datfd, offset, whence)) == -1)
+            printf("_db_writedat: lseek error");
+        db->datlen = strlen(data) + 1;
+
+        iov[0].iov_base = (char *) data;
+        iov[0].iov_len = db->datlen -1;
+        iov[1].iov_base = &newline;
+        iov[1].iov_len = 1;
+
+        if(writev(db->datfd, &iov[0], 2) != db->datlen)
+            printf("_db_writedat: writev error of data record");
+
+        if(whence == SEEK_END)
+            if(un_lock(db->datfd, 0, SEEK_SET, 0) < 0)
+                printf("_db_writedat: un_lock error")
+}
+
 int main() {
 
     return 0;
