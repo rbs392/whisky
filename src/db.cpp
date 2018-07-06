@@ -357,6 +357,22 @@ _db_writeidx(DB *db, const char *key, off_t offset, int whence, off_t ptrval)
             printf("_db_writeidx: un_lock error");
 }
 
+static void
+_db_writeptr(DB *db, off_t offset, off_t ptrval)
+{
+    char asciiptr[PTR_SZ + 1];
+
+    if(ptrval < 0 || ptrval > PTR_MAX)
+        printf("_db_writeptr: invalid ptr %d", ptrval);
+    
+    sprintf(asciiptr, "%*lld", PTR_SZ, (long long)ptrval);
+
+    if(lseek(db->idxfd, offset, SEEK_SET) == -1)
+        printf("_db_writeptr: lseek error to ptr field");
+    if(write(db->idxfd, asciiptr, PTR_SZ) != PTR_SZ) 
+        printf("_db_writeptr: write error of ptr field");
+}
+
 int main() {
 
     return 0;
