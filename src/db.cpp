@@ -322,7 +322,39 @@ _db_writedat(DB *db, const char *data, off_t offset, int whence)
 
         if(whence == SEEK_END)
             if(un_lock(db->datfd, 0, SEEK_SET, 0) < 0)
-                printf("_db_writedat: un_lock error")
+                printf("_db_writedat: un_lock error");
+}
+
+static void
+_db_writeidx(DB *db, const char *key, off_t offset, int whence, off_t ptrval)
+{
+    struct iovec    iov[2];
+    char            asciiptrlen[PTR_SZ + IDXLEN_SZ + 1];
+    int             len;
+
+    if ((db->ptrval = ptrval) < 0 || ptrval > PTR_MAX)
+        printf("_db_writeidx: invalide ptr: %d", ptrval);
+
+    sprintf(asciiptrlen, "%*lld%*d", PTR_SZ, (long long)ptrval, IDXLEN_SZ, len);
+
+    if (whence == SEEK_END)
+        if(writew_lock(db->idxfd, ((db->nhash + 1) * PTR_SZ) + 1, SEEK_SET, 0) < 0)
+            printf("_db_writeidx: writew_lock error")
+    
+    if((db->idxoff = lseek(db->idxfd, offsetm whence)) == -1)
+        printf("_db_writeidx: lseek error");
+
+    iov[0].iov_base = asciiptrlen;
+    iov[0].iov_len = PTR_SZ + IDXLEN_SZ;
+    iov[1].iov_base = db->idxbuf;
+    iov[1].iov_len = len;
+
+    if (writev(db->idxfd, &iov[0], 2) != PTR_SZ + IDXLEN_SZ + len)
+        printf("_db_writeidx: writev error of index record");
+    
+    if(whence == SEEK_END)
+        if(un_lock(db->idxfd, ((db->nhash + 1) * PTR_SZ) + 1, SEEK_SET, 0) < 0)
+            printf("_db_writeidx: un_lock error");
 }
 
 int main() {
