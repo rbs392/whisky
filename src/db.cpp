@@ -444,7 +444,47 @@ db_store(DBHANDLE h, const char *key, const char *data, int flag)
 static int
 _db_findfree(DB *db, int keylen, int datlen)
 {
-    
+    int rc;
+    off_t offset, nextoffset, saveoffset;
+
+    if(writew_lock(db->idxfd, FREE_OFF, SEEK_SET, 1) < 0)
+        printf("_db_findfree: writew_lock error");
+
+    saveoffset = FREE_OFF;
+    offset = _db_readptr(db, saveoffset);
+
+    while(offset != 0) {
+        nextoffset = _db_readidx(db, offset);
+
+        if(strlen(db->idxbuf) == keylen && db->datlen == datlen)
+            break;
+        saveoffset = offset;
+        offset = nextoffset;
+    }
+
+    if(offset == 0) {
+        rc = -1;
+    } else {
+        _db_writeptr(db, saveoffset, db->ptrval);
+        rc = 0;
+    }
+
+    if(un_lock(db->idxfd, FREE_OFF, SEEK_SET, 1) < 0)
+        printf("_db_findfree: un_lock error");
+
+    return(rc);
+}
+
+void
+db_rewind(DBHANDLE h)
+{
+    DB      *db = h;
+    off_t   offset;
+
+    offset = (db->nhash + 1) * PTR_SZ;
+
+    if((db->idxoff = lseek(db->idxfd, offset+1, SEEK_SET)) == -1)
+        printf("db_rewind: lseek error");
 }
 
 int main() {
