@@ -373,6 +373,80 @@ _db_writeptr(DB *db, off_t offset, off_t ptrval)
         printf("_db_writeptr: write error of ptr field");
 }
 
+int
+db_store(DBHANDLE h, const char *key, const char *data, int flag)
+{
+    DB      *db = h;
+    int     rc, keylen, datlen;
+    off_t   ptrval;
+
+    if(flag != DB_INSERT && flag != DB_REPLACE && flag != DB_STORE) {
+        errno = EINVAL;
+        return(-1);
+    }
+
+    keylen = strlen(key);
+    datlen = strlen(data) + 1;
+
+    if(datlen < DATALEN_MIN || datlen > DATALEN_MAX)
+        printf("db_store: invalid data length");
+
+    if (_db_find_and_lock(db, key, 1) < 0) {
+        if(flag == DB_REPLACE) {
+            rc = -1;
+            db->cnt_storerr++;
+            errno = ENOENT;
+            goto doreturn;
+        }
+
+        ptrval = _db_readptr(db, db->chainoff);
+
+        if(_db_findfree(db, keylen, datlen) <  0) {
+            _db_writedat(db, data, 0, SEEK_END);
+            _db_writeidx(db, key, 0, SEEK_END, ptrval);
+            _db_writeptr(db, db->chainoff, db->idxoff);
+            db->cnt_stor1++;
+        } else {
+            _db_writedat(db, data, db->datoff, SEEK_SET);
+            _db_writeidx(db, key, db->idxoff, SEEK_SET, ptrval);
+            _db_writeptr(db, db->chainoff, db->idxoff);
+            db->cnt_stor2++;
+        }
+    } else {
+        if(flag == DB_INSERT) {
+            rc = 1;
+            db->cnt_storerr++;
+            goto doreturn;
+        }
+
+        if(datlen != db->datlen) {
+            _db_dodelete(db);
+
+            ptrval = _db_readptr(db, db->chainoff);
+            _db_writedat(db, data, 0, SEEK_END);
+            _db_writeidx(db, key, 0, SEEK_END, ptrval);
+
+            _db_writeptr(db, db->chainoff, db->idxoff)log2phys
+            db->cnt_stor3++;
+        } else {
+            _db_writedat(db, data, db->datoff, SEEK_SET);
+            db->cnt_stor4++
+        }
+    }
+    rc = 0;
+
+    doreturn:
+        if(un_lock(db->idxfd, db->chainoff, SEEK_SET, 1) < 0)
+            printf("db_store: un_lock error");
+        return(rc);
+}
+
+static int
+_db_findfree(DB *db, int keylen, int datlen)
+{
+    
+}
+
 int main() {
 
     return 0;
